@@ -1,5 +1,5 @@
 import api from '../api/axiosConfig';
-import { SocialRankingUser } from '../interfaces';
+import type { SocialRankingUser } from '../interfaces';
 import { handleApiError } from '../utils/apiErrorHandler';
 
 export const socialService = {

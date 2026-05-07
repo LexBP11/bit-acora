@@ -1,5 +1,5 @@
 import api from '../api/axiosConfig';
-import { Gasto, AlertaPresupuesto } from '../interfaces';
+import type { Gasto, AlertaPresupuesto } from '../interfaces';
 import { handleApiError } from '../utils/apiErrorHandler';
 
 export const gastoService = {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Itinerario } from '../interfaces';
+import type { Itinerario } from '../interfaces';
 import { itinerarioService } from '../services/itinerarioService';
 
 /**

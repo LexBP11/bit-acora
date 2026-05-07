@@ -1,5 +1,5 @@
 import api from '../api/axiosConfig';
-import { Actividad } from '../interfaces';
+import type { Actividad } from '../interfaces';
 import { handleApiError } from '../utils/apiErrorHandler';
 
 export const actividadService = {

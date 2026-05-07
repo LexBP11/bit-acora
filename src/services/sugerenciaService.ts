@@ -1,5 +1,5 @@
 import api from '../api/axiosConfig';
-import { Itinerario } from '../interfaces';
+import type { Itinerario } from '../interfaces';
 import { handleApiError } from '../utils/apiErrorHandler';
 
 export const sugerenciaService = {

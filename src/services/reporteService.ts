@@ -1,5 +1,5 @@
 import api from '../api/axiosConfig';
-import { ReporteViaje, ReportePeriodo } from '../interfaces';
+import type { ReporteViaje, ReportePeriodo } from '../interfaces';
 import { handleApiError } from '../utils/apiErrorHandler';
 
 export const reporteService = {

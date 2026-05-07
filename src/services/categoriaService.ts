@@ -1,5 +1,5 @@
 import api from '../api/axiosConfig';
-import { Categoria } from '../interfaces';
+import type { Categoria } from '../interfaces';
 import { handleApiError } from '../utils/apiErrorHandler';
 
 export const categoriaService = {

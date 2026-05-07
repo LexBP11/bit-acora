@@ -1,5 +1,5 @@
 import api from '../api/axiosConfig';
-import { Usuario } from '../interfaces';
+import type { Usuario } from '../interfaces';
 import { handleApiError } from '../utils/apiErrorHandler';
 
 export const usuarioService = {
