@@ -63,6 +63,9 @@ const Registro = () => {
     if (!email.trim()) {
       nuevosErrores.email = 'El correo electrónico es obligatorio';
       hayErrores = true;
+    } else if (!/^[^\s@]+@[^\s@]+\.com$/.test(email)) {
+      nuevosErrores.email = 'El correo debe tener un formato válido';
+      hayErrores = true;
     }
 
     if (!password) {
