@@ -6,7 +6,7 @@ interface AuthContextType {
   user: Usuario | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (token: string, userJson: string) => void;
   logout: () => void;
 }
 
@@ -20,14 +20,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('token');
-      if (token) {
+      const userJson = localStorage.getItem('user');
+      
+      if (token && userJson) {
         try {
-          // Llama al servicio para recuperar datos del perfil (en tu API debe mapear a /api/usuarios/perfil)
-          const profileData = await usuarioService.getPerfil();
-          setUser(profileData);
+          const userData = JSON.parse(userJson);
+          setUser(userData);
           setIsAuthenticated(true);
         } catch (error) {
-          console.error('Error al recuperar el perfil:', error);
+          console.error('Error al parsear usuario:', error);
           usuarioService.logout();
         }
       }
@@ -37,9 +38,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
-    const data = await usuarioService.login({ email, contraseña: password });
-    setUser(data.user);
+  const login = (token: string, userJson: string) => {
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', userJson);
+    const userData = JSON.parse(userJson);
+    setUser(userData);
     setIsAuthenticated(true);
   };
 

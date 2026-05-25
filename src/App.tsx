@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
+import Sidebar from './components/Sidebar';
 
 // Páginas (Rutas Públicas)
 import Login from './pages/Auth/Login';
@@ -18,6 +19,16 @@ import Finanzas from './pages/Finanzas/Finanzas';
 import VerPerfil from './pages/Perfil/VerPerfil';
 import EditarPerfil from './pages/Perfil/EditarPerfil';
 
+// Layout para rutas protegidas con Sidebar
+const ProtectedLayout = ({ children }: { children: React.ReactNode }) => (
+  <div className="flex h-screen bg-gray-50">
+    <Sidebar />
+    <div className="flex-1 overflow-auto">
+      {children}
+    </div>
+  </div>
+);
+
 const App = () => {
   return (
     <AuthProvider>
@@ -29,16 +40,79 @@ const App = () => {
 
           {/* Rutas Protegidas */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/preferencias" element={<TestPreferencias />} />
-            <Route path="/home" element={<Home />} />
-            <Route path="/itinerarios" element={<MisItinerarios />} />
-            <Route path="/itinerarios/crear" element={<CrearItinerario />} />
-            <Route path="/itinerarios/:id/dias" element={<VerItinerario />} />
-            <Route path="/itinerarios/:id/detalle" element={<DetalleItinerario />} />
-            <Route path="/itinerarios/:id/finanzas" element={<Finanzas />} />
-            <Route path="/perfil" element={<VerPerfil />} />
-            <Route path="/perfil/editar" element={<EditarPerfil />} />
-            
+            <Route
+              path="/preferencias"
+              element={
+                <ProtectedLayout>
+                  <TestPreferencias />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/home"
+              element={
+                <ProtectedLayout>
+                  <Home />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/itinerarios"
+              element={
+                <ProtectedLayout>
+                  <MisItinerarios />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/itinerarios/crear"
+              element={
+                <ProtectedLayout>
+                  <CrearItinerario />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/itinerarios/:id/dias"
+              element={
+                <ProtectedLayout>
+                  <VerItinerario />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/itinerarios/:id/detalle"
+              element={
+                <ProtectedLayout>
+                  <DetalleItinerario />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/itinerarios/:id/finanzas"
+              element={
+                <ProtectedLayout>
+                  <Finanzas />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/perfil"
+              element={
+                <ProtectedLayout>
+                  <VerPerfil />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/perfil/editar"
+              element={
+                <ProtectedLayout>
+                  <EditarPerfil />
+                </ProtectedLayout>
+              }
+            />
+
             {/* Redirección para el dashboard anterior */}
             <Route path="/dashboard" element={<Navigate to="/home" replace />} />
           </Route>
