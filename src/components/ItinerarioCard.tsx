@@ -1,5 +1,5 @@
 import React from 'react';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiEdit2, FiTrash2 } from 'react-icons/fi';
 
 interface ItinerarioCard {
   id: string;
@@ -16,6 +16,8 @@ interface ItinerarioCardProps {
   onPrev?: () => void;
   onNext?: () => void;
   onClick: () => void;
+  onEdit?: (e: React.MouseEvent) => void;
+  onDelete?: (e: React.MouseEvent) => void;
 }
 
 const ItinerarioCard: React.FC<ItinerarioCardProps> = ({
@@ -23,6 +25,8 @@ const ItinerarioCard: React.FC<ItinerarioCardProps> = ({
   onPrev,
   onNext,
   onClick,
+  onEdit,
+  onDelete,
 }) => {
   return (
     <div
@@ -89,9 +93,33 @@ const ItinerarioCard: React.FC<ItinerarioCardProps> = ({
         {/* Sección Derecha - Contenido */}
         <div className="w-2/3 p-6 flex flex-col justify-between">
           <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
-              {itinerario.titulo}
-            </h3>
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-xl font-bold text-gray-900">
+                {itinerario.titulo}
+              </h3>
+              {(onEdit || onDelete) && (
+                <div className="flex gap-2">
+                  {onEdit && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onEdit(e); }}
+                      className="p-1.5 text-blue-500 hover:bg-blue-50 rounded-md transition"
+                      title="Editar itinerario"
+                    >
+                      <FiEdit2 size={18} />
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onDelete(e); }}
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-md transition"
+                      title="Borrar itinerario"
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
             <div className="mb-3">
               <p className="text-sm font-semibold text-gray-600">Descripción:</p>
               <p className="text-gray-600 text-sm line-clamp-2">

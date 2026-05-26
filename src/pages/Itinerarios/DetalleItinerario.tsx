@@ -4,6 +4,7 @@ import { FiArrowLeft, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { itinerarioService } from '../../services/itinerarioService';
 import type { Itinerario, Actividad } from '../../interfaces';
 import { getImagenesDestino } from '../../utils/imagenHelper';
+import { obtenerImagenes } from '../../utils/imageStorage';
 
 interface ActividadPorDia {
   dia: number;
@@ -164,7 +165,14 @@ const DetalleItinerario = () => {
     (a) => a.dia === selectedDia
   )?.actividades || [];
 
-  const imagenes = itinerario ? getImagenesDestino(itinerario.destino) : [];
+  const imagenes = (() => {
+    if (!itinerario) return [];
+    // Primero verificar si hay imágenes guardadas por el usuario
+    const savedImgs = id ? obtenerImagenes(id) : null;
+    if (savedImgs && savedImgs.length > 0) return savedImgs;
+    // Fallback a imágenes genéricas del destino
+    return getImagenesDestino(itinerario.destino);
+  })();
 
   const handleImageNext = () => {
     if (imagenes.length > 0) {

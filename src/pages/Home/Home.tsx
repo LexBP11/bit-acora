@@ -32,6 +32,11 @@ const Home = () => {
         if (!data || data.length === 0) {
           data = await itinerarioService.getAll();
         }
+
+        // Filtrar para mostrar solo los itinerarios de otros usuarios
+        if (data && user) {
+          data = data.filter((it: any) => it.usuarioId !== user.id);
+        }
         
         // Si aún está vacío, usa datos de prueba realistas con imágenes
         if (!data || data.length === 0) {
@@ -108,6 +113,11 @@ const Home = () => {
               ]
             }
           ];
+        }
+        
+        // Volver a filtrar si se usaron datos de prueba y coincidiera algún ID
+        if (data && user) {
+          data = data.filter((it: any) => it.usuarioId !== user.id);
         }
         
         setItinerarios(data || []);
