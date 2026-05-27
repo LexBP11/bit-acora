@@ -5,6 +5,7 @@ import { itinerarioService } from '../../services/itinerarioService';
 import type { Itinerario, Actividad } from '../../interfaces';
 import { getImagenesDestino } from '../../utils/imagenHelper';
 import { obtenerImagenes } from '../../utils/imageStorage';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface ActividadPorDia {
   dia: number;
@@ -14,6 +15,7 @@ interface ActividadPorDia {
 const DetalleItinerario = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [itinerario, setItinerario] = useState<Itinerario | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDia, setSelectedDia] = useState(1);
@@ -294,11 +296,21 @@ const DetalleItinerario = () => {
 
           {/* Info adicional */}
           <div className="mt-8 grid grid-cols-2 gap-4">
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <p className="text-sm text-gray-600">Presupuesto</p>
-              <p className="text-2xl font-bold text-gray-900">
-                ${itinerario.presupuesto}
-              </p>
+            <div className="bg-gray-50 p-4 rounded-lg flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-600">Presupuesto</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  ${itinerario.presupuesto}
+                </p>
+              </div>
+              {user && itinerario.usuarioId === user.id && (
+                <button
+                  onClick={() => navigate(`/itinerarios/${itinerario.id}/finanzas`)}
+                  className="bg-blue-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-600 transition"
+                >
+                  Ver Finanzas
+                </button>
+              )}
             </div>
             <div className="bg-gray-50 p-4 rounded-lg">
               <p className="text-sm text-gray-600">Duración</p>

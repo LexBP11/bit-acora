@@ -99,10 +99,19 @@ const CrearItinerario = () => {
   }, [editId]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
+    if (e.target.files && e.target.files.length > 0) {
+      if (imagenes.length >= 3) {
+        alert("Solo puedes subir un máximo de 3 imágenes.");
+        return;
+      }
       try {
-        const base64 = await fileToBase64(e.target.files[0]);
-        setImagenes(prev => [...prev, base64]);
+        const newImages: string[] = [];
+        for (let i = 0; i < e.target.files.length; i++) {
+          if (imagenes.length + newImages.length >= 3) break;
+          const base64 = await fileToBase64(e.target.files[i]);
+          newImages.push(base64);
+        }
+        setImagenes(prev => [...prev, ...newImages]);
       } catch (err) {
         console.error('Error al cargar imagen:', err);
       }
@@ -380,7 +389,7 @@ const CrearItinerario = () => {
             <div className="absolute inset-0 flex items-center justify-center z-10">
               <label className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center text-gray-600 hover:bg-white hover:scale-110 transition cursor-pointer">
                 <FiPlus size={32} />
-                <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
               </label>
             </div>
             {imagenes.length > 1 && (
