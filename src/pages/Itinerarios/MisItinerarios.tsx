@@ -108,7 +108,7 @@ const MisItinerarios = () => {
                     descripcion: itinerario.notas || 'Sin descripción',
                     imagen: (() => {
                       const saved = obtenerImagenes(itinerario.id);
-                      return saved ? saved[0] : (itinerario.imagen || getImagenDestino(itinerario.destino));
+                      return saved && saved.length > 0 ? saved[0] : (itinerario.imagen || '');
                     })(),
                     usuarioNombre: itinerario.usuario?.nombre || user?.nombre || 'Yo',
                     usuarioInicial: (itinerario.usuario?.nombre || user?.nombre || 'Y').charAt(0).toUpperCase(),

@@ -142,7 +142,7 @@ const DetalleItinerario = () => {
           new Date(itinerario.fechaInicio).getTime()) /
           (1000 * 60 * 60 * 24)
       );
-      return isNaN(diff) || diff <= 0 ? 3 : diff;
+      return isNaN(diff) || diff < 0 ? 3 : diff + 1;
     }
     return 3;
   })();
@@ -169,11 +169,11 @@ const DetalleItinerario = () => {
 
   const imagenes = (() => {
     if (!itinerario) return [];
-    // Primero verificar si hay imágenes guardadas por el usuario
+    // Solo mostrar las imágenes guardadas por el usuario. Si no hay, array vacío.
     const savedImgs = id ? obtenerImagenes(id) : null;
     if (savedImgs && savedImgs.length > 0) return savedImgs;
-    // Fallback a imágenes genéricas del destino
-    return getImagenesDestino(itinerario.destino);
+    if ((itinerario as any).imagenes && (itinerario as any).imagenes.length > 0) return (itinerario as any).imagenes;
+    return itinerario.imagen ? [itinerario.imagen] : [];
   })();
 
   const handleImageNext = () => {
@@ -273,17 +273,9 @@ const DetalleItinerario = () => {
                     <h4 className="font-bold text-gray-900 mb-1">
                       {actividad.nombre}
                     </h4>
-                    <p className="text-sm text-gray-600 mb-3">
+                    <p className="text-sm text-gray-600">
                       {actividad.descripcion || 'Actividad'}
                     </p>
-                    <div className="flex gap-2">
-                      <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-full font-medium">
-                        🍽️ Restaurante
-                      </span>
-                      <span className="px-3 py-1 bg-amber-100 text-amber-700 text-sm rounded-full font-medium">
-                        🏞️ Parque
-                      </span>
-                    </div>
                   </div>
                 ))
               ) : (
@@ -300,7 +292,7 @@ const DetalleItinerario = () => {
               <div>
                 <p className="text-sm text-gray-600">Presupuesto</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  ${itinerario.presupuesto}
+                  ${itinerario.presupuesto || 0}
                 </p>
               </div>
               {user && itinerario.usuarioId === user.id && (

@@ -10,9 +10,11 @@ interface Itinerario {
   id: string;
   destino: string;
   imagen?: string;
+  imagenes?: string[];
   notas: string;
   usuarioId: string;
   usuario?: { nombre: string };
+  presupuesto?: number;
   actividades: { nombre: string; icono?: string }[];
 }
 
@@ -46,6 +48,10 @@ const Home = () => {
               id: '1',
               destino: 'París, Francia',
               imagen: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500&h=300&fit=crop',
+              imagenes: [
+                'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500&h=300&fit=crop',
+                'https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?w=500&h=300&fit=crop'
+              ],
               notas: 'Explora la ciudad del amor, visitando la Torre Eiffel, el Louvre y disfrutando de la gastronomía francesa.',
               usuarioId: 'user1',
               usuario: { nombre: 'Juan' },
@@ -54,12 +60,17 @@ const Home = () => {
                 { nombre: 'Museos', icono: '🎨' },
                 { nombre: 'Restaurantes', icono: '🍽️' },
                 { nombre: 'Paseos', icono: '🚶' }
-              ]
+              ],
+              presupuesto: 2500
             },
             {
               id: '2',
               destino: 'Barcelona, España',
               imagen: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=500&h=300&fit=crop',
+              imagenes: [
+                'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=500&h=300&fit=crop',
+                'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=500&h=300&fit=crop'
+              ],
               notas: 'Descubre la arquitectura de Gaudí, playas mediterráneas y la vibrant vida nocturna de la ciudad.',
               usuarioId: 'user2',
               usuario: { nombre: 'María' },
@@ -68,12 +79,17 @@ const Home = () => {
                 { nombre: 'Playas', icono: '🏖️' },
                 { nombre: 'Gastronomía', icono: '🍽️' },
                 { nombre: 'Compras', icono: '🛍️' }
-              ]
+              ],
+              presupuesto: 1800
             },
             {
               id: '3',
               destino: 'Tokio, Japón',
               imagen: 'https://images.unsplash.com/photo-1549693578-d683be217e58?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fHRva3lvfGVufDB8fDB8fHww',
+              imagenes: [
+                'https://images.unsplash.com/photo-1549693578-d683be217e58?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fHRva3lvfGVufDB8fDB8fHww',
+                'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=500&h=300&fit=crop'
+              ],
               notas: 'Sumergete en la cultura japonesa, desde templos antiguos hasta tecnología de punta en la metrópolis moderna.',
               usuarioId: 'user3',
               usuario: { nombre: 'Carlos' },
@@ -82,12 +98,17 @@ const Home = () => {
                 { nombre: 'Compras', icono: '🛍️' },
                 { nombre: 'Gastronomía', icono: '🍱' },
                 { nombre: 'Naturaleza', icono: '🌸' }
-              ]
+              ],
+              presupuesto: 3200
             },
             {
               id: '4',
               destino: 'Nueva York, USA',
               imagen: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=500&h=300&fit=crop',
+              imagenes: [
+                'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=500&h=300&fit=crop',
+                'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=500&h=300&fit=crop'
+              ],
               notas: 'La ciudad que nunca duerme: Times Square, Central Park, Broadway y experiencias urbanas inolvidables.',
               usuarioId: 'user4',
               usuario: { nombre: 'Ana' },
@@ -96,12 +117,17 @@ const Home = () => {
                 { nombre: 'Teatro', icono: '🎭' },
                 { nombre: 'Compras', icono: '🛍️' },
                 { nombre: 'Restaurantes', icono: '🍽️' }
-              ]
+              ],
+              presupuesto: 4000
             },
             {
               id: '5',
               destino: 'Machu Picchu, Perú',
               imagen: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWFjaHUlMjBwaWNjaHV8ZW58MHx8MHx8fDA%3D',
+              imagenes: [
+                'https://images.unsplash.com/photo-1587595431973-160d0d94add1?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWFjaHUlMjBwaWNjaHV8ZW58MHx8MHx8fDA%3D',
+                'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=500&h=300&fit=crop'
+              ],
               notas: 'Maravilla del mundo antiguo: senderismo en las montañas de los Andes y descubrimiento de la civilización inca.',
               usuarioId: 'user5',
               usuario: { nombre: 'Pedro' },
@@ -110,7 +136,8 @@ const Home = () => {
                 { nombre: 'Arqueología', icono: '🏛️' },
                 { nombre: 'Naturaleza', icono: '🏔️' },
                 { nombre: 'Fotografía', icono: '📸' }
-              ]
+              ],
+              presupuesto: 1200
             }
           ];
         }
