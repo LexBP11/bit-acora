@@ -48,6 +48,19 @@ export const itinerarioService = {
     }
   },
 
+  uploadPortada: async (id: string, file: File): Promise<Itinerario> => {
+    try {
+      const formData = new FormData();
+      formData.append('portada', file);
+      const response = await api.post(`/itinerarios/${id}/portada`, formData, {
+        headers: { 'Content-Type': undefined },
+      });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
   updateVisibilidad: async (id: string): Promise<Itinerario> => {
     try {
       const response = await api.patch(`/itinerarios/${id}/visibilidad`);

@@ -1,5 +1,5 @@
 import api from '../api/axiosConfig';
-import type { Usuario } from '../interfaces';
+import type { Usuario, UpdatePerfilPayload } from '../interfaces';
 import { handleApiError } from '../utils/apiErrorHandler';
 
 export const usuarioService = {
@@ -31,9 +31,31 @@ export const usuarioService = {
     }
   },
 
-  updatePerfil: async (data: Partial<Usuario> & { contraseña?: string }): Promise<Usuario> => {
+  updatePerfil: async (data: UpdatePerfilPayload): Promise<Usuario> => {
     try {
       const response = await api.put('/usuarios/perfil', data);
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  deletePerfil: async (): Promise<{ message: string }> => {
+    try {
+      const response = await api.delete('/usuarios/perfil');
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  uploadAvatar: async (file: File): Promise<Usuario> => {
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+      const response = await api.post('/usuarios/avatar', formData, {
+        headers: { 'Content-Type': undefined },
+      });
       return response.data;
     } catch (error) {
       handleApiError(error);

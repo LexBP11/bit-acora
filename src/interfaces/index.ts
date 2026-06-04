@@ -4,8 +4,16 @@ export interface Usuario {
   email: string;
   destinosInteres?: string[];
   presupuestoPerfil?: number;
+  avatarUrl?: string;
   creadoEn?: string;
   actualizadoEn?: string;
+}
+
+export interface UpdatePerfilPayload {
+  nombreUsuario?: string;
+  destinosInteres?: string[];
+  contrasenaActual?: string;
+  nuevaContrasena?: string;
 }
 
 export interface Actividad {
@@ -26,6 +34,7 @@ export interface Itinerario {
   presupuesto: number;
   notas?: string;
   esPublico: boolean;
+  portadaUrl?: string;
   estado?: 'ACTIVO' | 'ELIMINADO';
   actividades?: Actividad[];
   gastos?: Gasto[];
