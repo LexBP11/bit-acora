@@ -19,6 +19,46 @@ El sistema de rachas y el tablero social se actualizan automáticamente a travé
 - **Rachas**: Si el usuario no registra gastos en 24 horas, el sistema reinicia la racha a cero. La UI solo debe mostrar este valor sin posibilidad de editarlo para mantener la integridad del juego.
 - **Privacidad**: Al publicar un itinerario en la sección comunitaria, el sistema oculta automáticamente todos los datos financieros; los compañeros de UI no necesitan filtrar esto manualmente, ya que el servicio lo hace por seguridad.
 
+### 4. Gestión de Perfil y Cuenta
+Para la pantalla de **Editar perfil**, utilicen `usuarioService` para la información personal y de seguridad.
+
+- **Consulta inicial**: `usuarioService.getPerfil()` (GET `/api/usuarios/perfil`) para cargar nombre, destinos de interés y `avatarUrl` si existe.
+- **Edición de datos y contraseña**: Al guardar, llamen `usuarioService.updatePerfil()` (PUT `/api/usuarios/perfil`). Pueden enviar `nombreUsuario` y un array de `destinosInteres`.
+  - **Importante**: Si el usuario quiere cambiar su contraseña, la UI debe exigir y enviar **obligatoriamente** tanto `contrasenaActual` como `nuevaContrasena`. Si la contraseña actual no coincide, el backend devolverá `400 Bad Request` con el mensaje correspondiente.
+  - Si solo actualizan nombre o destinos, no envíen campos de contraseña.
+- **Eliminación de cuenta**: `usuarioService.deletePerfil()` (DELETE `/api/usuarios/perfil`). El backend realiza un **borrado lógico** para no romper reportes ni relaciones históricas.
+  - Tras recibir el `200 OK` de confirmación, la UI debe ejecutar **inmediatamente** `logout()` del contexto (`useAuth`) para limpiar la sesión y redirigir a la pantalla de inicio (o login), **sin** manipular `localStorage` a mano.
+
+```tsx
+import { useAuth } from '../contexts/AuthContext';
+import { usuarioService } from '../services/usuarioService';
+
+const { logout } = useAuth();
+
+await usuarioService.deletePerfil();
+logout();
+navigate('/'); // o la ruta de inicio que definan
+```
+
+### 5. Carga y Visualización de Imágenes (NUEVO)
+Ya está habilitada la subida de imágenes estáticas locales para el **avatar del usuario** y las **portadas de los itinerarios**.
+
+- **Envío de archivos (FormData)**: Las imágenes no se envían en JSON. Capturen el archivo del `<input type="file">` y envíenlo con `FormData`; el navegador genera las cabeceras `multipart/form-data` automáticamente (en el proyecto ya está encapsulado en los servicios).
+  - **Perfil**: `usuarioService.uploadAvatar(file)` → POST `/api/usuarios/avatar` con `formData.append('avatar', file)`.
+  - **Itinerarios**: `itinerarioService.uploadPortada(itinerarioId, file)` → POST `/api/itinerarios/:id/portada` con `formData.append('portada', file)`.
+  - Formatos admitidos: PNG, JPG o JPEG. Tamaño máximo: **5 MB** por archivo.
+- **Visualización en UI**: Tras subir, el backend devuelve el objeto actualizado con una ruta relativa en `avatarUrl` o `portadaUrl` (ej. `/uploads/avatars/foto.jpg`). Para renderizarlas en un `<img>`, concatenen la **URL base del servidor** (sin `/api`) con esa ruta parcial. Véase la sección *Variables de Entorno*.
+
+```tsx
+// Ejemplo: construir URL pública de una imagen estática
+const serverBase = (import.meta.env.VITE_API_URL || 'http://localhost:3000/api').replace(/\/api\/?$/, '');
+const src = usuario.avatarUrl ? `${serverBase}${usuario.avatarUrl}` : '/placeholder-avatar.png';
+
+<img src={src} alt="Avatar" />
+```
+
+Por el momento, la subida puede integrarse en **Editar perfil** (avatar) y en el flujo de creación/edición de itinerarios (portada), reutilizando los métodos del servicio sin armar la petición HTTP manualmente en cada pantalla.
+
 ---
 
 ## 🛠️ Notas Técnicas Importantes para Desarrolladores
@@ -30,6 +70,15 @@ Antes de comenzar a correr la aplicación localmente, asegúrense de copiar el a
 ```env
 VITE_API_URL=http://localhost:3000/api
 ```
+
+**Peticiones API**: Axios usa `VITE_API_URL` como `baseURL` (rutas bajo `/api/...`).
+
+**Imágenes estáticas** (`avatarUrl`, `portadaUrl`): El backend sirve los archivos en la raíz del servidor (ej. `http://localhost:3000/uploads/...`), no bajo `/api`. Para montar el `src` de un `<img>`, quiten el sufijo `/api` de `VITE_API_URL` y concatenen la ruta relativa que devuelve el API:
+
+| Variable | Uso |
+|----------|-----|
+| `VITE_API_URL` | Llamadas REST (`usuarioService`, `itinerarioService`, etc.) |
+| Misma URL sin `/api` | Prefijo para `avatarUrl` y `portadaUrl` en la UI |
 
 ### Manejo de Sesión (Tokens y LocalStorage)
 **IMPORTANTE**: Por motivos de consistencia de estado, **no manipulen el `localStorage` directamente** para insertar, leer o borrar el JWT. 
