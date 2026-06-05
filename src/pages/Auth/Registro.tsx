@@ -98,6 +98,8 @@ const Registro = () => {
         contraseña: password,
         destinosInteres
       });
+      
+      console.log("Respuesta del servidor:", respuesta);
 
       if (respuesta && respuesta.token) {
         setAlerta({ tipo: 'exito', mensaje: 'Usuario creado con éxito Ingresando...'});
