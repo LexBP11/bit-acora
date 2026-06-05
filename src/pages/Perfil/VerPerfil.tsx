@@ -18,7 +18,7 @@ const VerPerfil = () => {
     return (
       <div className="h-full flex items-center justify-center p-10">
         <div className="bg-red-50 text-red-600 p-6 rounded-xl shadow-sm text-center">
-          <p className="font-semibold text-lg mb-2">Algo salió mal</p>
+          <p className="font-semibold text-lg mb-2">Ups, algo salió mal</p>
           <p className="text-sm">No se pudo cargar la información del usuario.</p>
         </div>
       </div>
@@ -26,6 +26,12 @@ const VerPerfil = () => {
   }
 
   const inicialNombre = user.nombre ? user.nombre.charAt(0).toUpperCase() : '?';
+
+  // Construir la URL completa del avatar si existe, basándonos en tu entorno
+  const serverBase = import.meta.env.VITE_API_URL 
+    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
+    : 'http://localhost:3000';
+  const avatarSrc = user?.avatarUrl ? `${serverBase}${user.avatarUrl}` : null;
 
   return (
     <div className="p-8 max-w-5xl mx-auto font-sans">
@@ -50,10 +56,13 @@ const VerPerfil = () => {
 
         <div className="px-10 pb-10 relative flex flex-col items-center">
           
-          {/* AVATAR SUPERPUESTO */}
-          {/* Usamos -mt-20 para subirlo y ring-4 para darle el borde blanco */}
-          <div className="-mt-20 w-40 h-40 rounded-full bg-[#E4E9EC] text-[#305973] border-4 border-white flex items-center justify-center text-6xl font-bold shadow-md z-10">
-            {inicialNombre}
+          {/* AVATAR SUPERPUESTO (¡AHORA CON SOPORTE DE IMAGEN!) */}
+          <div className="-mt-20 w-40 h-40 rounded-full bg-[#E4E9EC] text-[#305973] border-4 border-white flex items-center justify-center text-6xl font-bold shadow-md z-10 overflow-hidden">
+            {avatarSrc ? (
+              <img src={avatarSrc} alt="Avatar de perfil" className="w-full h-full object-cover" />
+            ) : (
+              inicialNombre
+            )}
           </div>
 
           {/* NOMBRE E INFO BÁSICA CENTRAL */}
@@ -73,7 +82,6 @@ const VerPerfil = () => {
             </h3>
             
             <div className="flex flex-wrap gap-3">
-              {/* Si el usuario tiene destinos, los mostramos como etiquetas azules */}
               {user.destinosInteres && user.destinosInteres.length > 0 ? (
                 user.destinosInteres.map((destino, index) => (
                   <span 
