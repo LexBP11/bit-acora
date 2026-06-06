@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { FiArrowLeft, FiPlus, FiTrash2, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { itinerarioService } from '../../services/itinerarioService';
 import { actividadService } from '../../services/actividadService';
 import { useAuth } from '../../contexts/AuthContext';
-import { fileToBase64, guardarImagenes, obtenerImagenes } from '../../utils/imageStorage';
+import { getPortadaUrl } from '../../utils/imagenHelper';
 
 interface ActivityDraft {
   id: string;
   dayIndex: number;
   nombre: string;
   descripcion: string;
-  isFromServer?: boolean; // para saber si ya existe en el backend
+  isFromServer?: boolean;
 }
 
 const CrearItinerario = () => {
@@ -23,23 +23,33 @@ const CrearItinerario = () => {
   const [titulo, setTitulo] = useState('');
   const [descripcion, setDescripcion] = useState('');
   const [presupuesto, setPresupuesto] = useState('');
-  
   const [numDays, setNumDays] = useState(3);
   const [activeDay, setActiveDay] = useState(0);
-  
   const [actividades, setActividades] = useState<ActivityDraft[]>([
-    { id: '1', dayIndex: 0, nombre: '', descripcion: '' }
+    { id: '1', dayIndex: 0, nombre: '', descripcion: '' },
   ]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
-  const [imagenes, setImagenes] = useState<string[]>([]);
-  const [imageIndex, setImageIndex] = useState(0);
-  const [fechaInicioOriginal, setFechaInicioOriginal] = useState<string | null>(null);
+  const [fechaInicio, setFechaInicio] = useState<string>(() => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  });
+  const [portadaUrlServidor, setPortadaUrlServidor] = useState<string | undefined>();
+  const [archivoPortada, setArchivoPortada] = useState<File | null>(null);
+  const [portadaPreview, setPortadaPreview] = useState<string | null>(null);
+  const [esPublico, setEsPublico] = useState(false);
 
-  // Cargar datos existentes si estamos en modo edición
+  useEffect(() => {
+    return () => {
+      if (portadaPreview) {
+        URL.revokeObjectURL(portadaPreview);
+      }
+    };
+  }, [portadaPreview]);
+
   useEffect(() => {
     if (!editId) return;
-    
+
     const loadItinerario = async () => {
       setLoadingData(true);
       try {
@@ -48,25 +58,29 @@ const CrearItinerario = () => {
           setTitulo(data.destino || '');
           setDescripcion(data.notas || '');
           setPresupuesto(data.presupuesto?.toString() || '');
-          setFechaInicioOriginal(data.fechaInicio);
-          
-          // Calcular número de días
+          if (data.fechaInicio) {
+            setFechaInicio(data.fechaInicio.split('T')[0]);
+          }
+          setPortadaUrlServidor(data.portadaUrl);
+          setEsPublico(data.esPublico ?? false);
+
           if (data.fechaInicio && data.fechaFin) {
             const diff = Math.ceil(
-              (new Date(data.fechaFin).getTime() - new Date(data.fechaInicio).getTime()) / (1000 * 60 * 60 * 24)
+              (new Date(data.fechaFin).getTime() - new Date(data.fechaInicio).getTime()) /
+                (1000 * 60 * 60 * 24)
             );
             setNumDays(diff > 0 ? diff + 1 : 3);
           }
-          
-          // Cargar actividades existentes agrupadas por día
+
           if (data.actividades && data.actividades.length > 0) {
-            const startDate = new Date(data.fechaInicio);
-            const mapped: ActivityDraft[] = data.actividades.map(act => {
+            const mapped: ActivityDraft[] = data.actividades.map((act) => {
               let dayIndex = 0;
               if (act.fecha && data.fechaInicio) {
                 const actDate = new Date(act.fecha.split('T')[0]);
                 const startD = new Date(data.fechaInicio.split('T')[0]);
-                dayIndex = Math.floor((actDate.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24));
+                dayIndex = Math.floor(
+                  (actDate.getTime() - startD.getTime()) / (1000 * 60 * 60 * 24)
+                );
                 if (dayIndex < 0) dayIndex = 0;
               }
               return {
@@ -81,12 +95,6 @@ const CrearItinerario = () => {
           } else {
             setActividades([]);
           }
-          
-          // Cargar imágenes guardadas en localStorage
-          const savedImgs = obtenerImagenes(editId);
-          if (savedImgs) {
-            setImagenes(savedImgs);
-          }
         }
       } catch (error) {
         console.error('Error al cargar itinerario para edición:', error);
@@ -94,71 +102,96 @@ const CrearItinerario = () => {
         setLoadingData(false);
       }
     };
-    
+
     loadItinerario();
   }, [editId]);
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      if (imagenes.length >= 3) {
-        alert("Solo puedes subir un máximo de 3 imágenes.");
-        return;
-      }
-      try {
-        const newImages: string[] = [];
-        for (let i = 0; i < e.target.files.length; i++) {
-          if (imagenes.length + newImages.length >= 3) break;
-          const base64 = await fileToBase64(e.target.files[i]);
-          newImages.push(base64);
-        }
-        setImagenes(prev => [...prev, ...newImages]);
-      } catch (err) {
-        console.error('Error al cargar imagen:', err);
-      }
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('La imagen es muy pesada. Máximo 5 MB.');
+      return;
     }
+
+    if (portadaPreview) {
+      URL.revokeObjectURL(portadaPreview);
+    }
+
+    setArchivoPortada(file);
+    setPortadaPreview(URL.createObjectURL(file));
+    e.target.value = '';
   };
 
   const handleRemoveImage = () => {
-    if (imagenes.length > 0) {
-      setImagenes(prev => prev.filter((_, i) => i !== imageIndex));
-      setImageIndex(0);
+    if (portadaPreview) {
+      URL.revokeObjectURL(portadaPreview);
     }
-  };
-
-  const handleImageNext = () => {
-    if (imagenes.length > 1) {
-      setImageIndex(prev => (prev + 1) % imagenes.length);
-    }
-  };
-
-  const handleImagePrev = () => {
-    if (imagenes.length > 1) {
-      setImageIndex(prev => (prev === 0 ? imagenes.length - 1 : prev - 1));
-    }
+    setArchivoPortada(null);
+    setPortadaPreview(null);
   };
 
   const handleAddDay = () => {
-    setNumDays(prev => prev + 1);
+    setNumDays((prev) => prev + 1);
+  };
+
+  const handleRemoveDay = () => {
+    if (numDays <= 1) return;
+
+    const dayIndex = activeDay;
+    const actividadesDelDia = actividades.filter((a) => a.dayIndex === dayIndex);
+    const tieneContenido = actividadesDelDia.some((a) => a.nombre.trim() || a.descripcion.trim());
+
+    if (
+      tieneContenido &&
+      !window.confirm('Este día tiene actividades. ¿Deseas eliminarlo de todos modos?')
+    ) {
+      return;
+    }
+
+    actividadesDelDia.forEach((act) => {
+      if (act.isFromServer) {
+        actividadService.delete(act.id).catch((err) =>
+          console.error('Error al eliminar actividad:', err)
+        );
+      }
+    });
+
+    setActividades((prev) =>
+      prev
+        .filter((a) => a.dayIndex !== dayIndex)
+        .map((a) =>
+          a.dayIndex > dayIndex ? { ...a, dayIndex: a.dayIndex - 1 } : a
+        )
+    );
+    setNumDays((prev) => prev - 1);
+    setActiveDay((prev) => (prev > dayIndex ? prev - 1 : Math.max(0, prev - 1)));
   };
 
   const handleAddActivity = () => {
     setActividades([
       ...actividades,
-      { id: Date.now().toString(), dayIndex: activeDay, nombre: '', descripcion: '' }
+      { id: Date.now().toString(), dayIndex: activeDay, nombre: '', descripcion: '' },
     ]);
   };
 
   const updateActivity = (id: string, field: keyof ActivityDraft, value: string) => {
-    setActividades(actividades.map(a => a.id === id ? { ...a, [field]: value } : a));
+    setActividades(actividades.map((a) => (a.id === id ? { ...a, [field]: value } : a)));
   };
 
   const deleteActivity = (id: string) => {
-    const act = actividades.find(a => a.id === id);
-    // Si es una actividad del servidor, eliminarla también del backend
+    const act = actividades.find((a) => a.id === id);
     if (act?.isFromServer) {
-      actividadService.delete(id).catch(err => console.error('Error al eliminar actividad:', err));
+      actividadService.delete(id).catch((err) => console.error('Error al eliminar actividad:', err));
     }
-    setActividades(actividades.filter(a => a.id !== id));
+    setActividades(actividades.filter((a) => a.id !== id));
+  };
+
+  const subirPortadaSiCorresponde = async (itinerarioId: string) => {
+    if (!archivoPortada) return;
+    const actualizado = await itinerarioService.uploadPortada(itinerarioId, archivoPortada);
+    setPortadaUrlServidor(actualizado.portadaUrl);
   };
 
   const handleGuardar = async () => {
@@ -166,7 +199,7 @@ const CrearItinerario = () => {
       alert('Por favor, ingrese un título y un presupuesto.');
       return;
     }
-    
+
     if (!user) {
       alert('Debe iniciar sesión para crear un itinerario.');
       return;
@@ -174,30 +207,27 @@ const CrearItinerario = () => {
 
     setLoading(true);
     try {
-      const baseDate = fechaInicioOriginal ? new Date(fechaInicioOriginal) : new Date();
+      const baseDate = new Date(fechaInicio + 'T12:00:00Z'); // Adding time to avoid timezone offset issues
       const end = new Date(baseDate);
       end.setDate(baseDate.getDate() + numDays - 1);
 
       if (editId) {
-        // --- MODO EDICIÓN ---
         await itinerarioService.update(editId, {
           destino: titulo,
           fechaFin: end.toISOString().split('T')[0],
           presupuesto: parseFloat(presupuesto),
           notas: descripcion,
+          esPublico,
         });
 
-        // Guardar actividades nuevas (las que no vienen del servidor)
         for (const act of actividades) {
           if (!act.nombre) continue;
           if (act.isFromServer) {
-            // Actualizar actividad existente
             await actividadService.update(act.id, {
               nombre: act.nombre,
               descripcion: act.descripcion,
             });
           } else {
-            // Crear actividad nueva
             const actDate = new Date(baseDate);
             actDate.setDate(baseDate.getDate() + act.dayIndex);
             await actividadService.create({
@@ -208,46 +238,38 @@ const CrearItinerario = () => {
             });
           }
         }
-        
-        // Guardar imágenes en localStorage
-        guardarImagenes(editId, imagenes);
-        
+
+        await subirPortadaSiCorresponde(editId);
         navigate('/itinerarios');
       } else {
-        // --- MODO CREACIÓN ---
-        const today = new Date();
-        const endCreate = new Date();
-        endCreate.setDate(today.getDate() + numDays - 1);
+        const endCreate = new Date(baseDate);
+        endCreate.setDate(baseDate.getDate() + numDays - 1);
 
         const newItinerario = await itinerarioService.create({
           usuarioId: user.id,
           destino: titulo,
-          fechaInicio: today.toISOString().split('T')[0],
+          fechaInicio: baseDate.toISOString().split('T')[0],
           fechaFin: endCreate.toISOString().split('T')[0],
           presupuesto: parseFloat(presupuesto),
           notas: descripcion,
-          esPublico: true
+          esPublico,
         });
-        
-        if (newItinerario && newItinerario.id) {
-          for (const act of actividades) {
-            if (!act.nombre) continue;
-            const actDate = new Date(today);
-            actDate.setDate(today.getDate() + act.dayIndex);
-            
+
+          if (newItinerario?.id) {
+            for (const act of actividades) {
+              if (!act.nombre) continue;
+              const actDate = new Date(baseDate);
+              actDate.setDate(baseDate.getDate() + act.dayIndex);
+
             await actividadService.create({
               itinerarioId: newItinerario.id,
               nombre: act.nombre,
               descripcion: act.descripcion,
-              fecha: actDate.toISOString()
+              fecha: actDate.toISOString(),
             });
           }
-          
-          // Guardar imágenes en localStorage
-          if (imagenes.length > 0) {
-            guardarImagenes(newItinerario.id, imagenes);
-          }
-          
+
+          await subirPortadaSiCorresponde(newItinerario.id);
           navigate('/itinerarios');
         }
       }
@@ -259,7 +281,12 @@ const CrearItinerario = () => {
     }
   };
 
-  const dayActivities = actividades.filter(a => a.dayIndex === activeDay);
+  const dayActivities = actividades.filter((a) => a.dayIndex === activeDay);
+  const actividadesConContenido = actividades.filter(
+    (a) => a.nombre.trim() || a.descripcion.trim()
+  );
+  const portadaMostrada =
+    portadaPreview || getPortadaUrl(portadaUrlServidor);
 
   if (loadingData) {
     return (
@@ -271,9 +298,8 @@ const CrearItinerario = () => {
 
   return (
     <div className="p-8 max-w-6xl mx-auto h-screen overflow-y-auto">
-      {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="p-2 bg-gray-200 rounded-full hover:bg-gray-300 transition"
         >
@@ -285,7 +311,6 @@ const CrearItinerario = () => {
       </div>
 
       <div className="flex flex-col lg:flex-row gap-12">
-        {/* Left Column */}
         <div className="flex-1">
           <input
             type="text"
@@ -302,22 +327,43 @@ const CrearItinerario = () => {
             className="w-full h-32 bg-gray-100 rounded-xl p-4 text-gray-700 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none mb-8"
           />
 
+          <div className="mb-8">
+            <label className="block text-sm font-bold text-gray-700 mb-2">
+              Fecha de Inicio del Viaje
+            </label>
+            <input
+              type="date"
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              className="w-full sm:w-1/2 p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 font-medium"
+            />
+          </div>
+
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-bold text-gray-800">Actividades</h2>
-              <button 
+              <button
                 onClick={handleAddActivity}
                 className="w-8 h-8 flex items-center justify-center bg-blue-500 text-white rounded-full hover:bg-blue-600 transition shadow-sm"
               >
                 <FiPlus size={18} />
               </button>
             </div>
-            <button 
-              onClick={handleAddDay}
-              className="text-sm text-blue-500 font-semibold hover:underline"
-            >
-              + Añadir día
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleAddDay}
+                className="text-sm text-blue-500 font-semibold hover:underline"
+              >
+                + Añadir día
+              </button>
+              <button
+                onClick={handleRemoveDay}
+                disabled={numDays <= 1}
+                className="text-sm text-red-500 font-semibold hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
+              >
+                − Quitar día
+              </button>
+            </div>
           </div>
 
           <div className="flex gap-4 mb-6 overflow-x-auto pb-2">
@@ -326,8 +372,8 @@ const CrearItinerario = () => {
                 key={idx}
                 onClick={() => setActiveDay(idx)}
                 className={`whitespace-nowrap px-6 py-2 rounded-full font-semibold transition ${
-                  activeDay === idx 
-                    ? 'bg-blue-500 text-white shadow-md' 
+                  activeDay === idx
+                    ? 'bg-blue-500 text-white shadow-md'
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
               >
@@ -338,10 +384,15 @@ const CrearItinerario = () => {
 
           <div className="space-y-4">
             {dayActivities.length === 0 && (
-              <p className="text-gray-500 italic">No hay actividades para este día. Agrega una con el botón +.</p>
+              <p className="text-gray-500 italic">
+                No hay actividades para este día. Agrega una con el botón +.
+              </p>
             )}
-            {dayActivities.map(act => (
-              <div key={act.id} className="flex gap-4 items-start bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+            {dayActivities.map((act) => (
+              <div
+                key={act.id}
+                className="flex gap-4 items-start bg-white p-4 rounded-xl border border-gray-100 shadow-sm"
+              >
                 <div className="flex-1 space-y-3">
                   <input
                     type="text"
@@ -358,78 +409,166 @@ const CrearItinerario = () => {
                     className="w-full text-gray-600 placeholder-gray-400 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none"
                   />
                 </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => deleteActivity(act.id)}
-                    className="p-2 text-gray-400 hover:text-red-500 transition"
-                  >
-                    <FiTrash2 size={18} />
-                  </button>
-                </div>
+                <button
+                  onClick={() => deleteActivity(act.id)}
+                  className="p-2 text-gray-400 hover:text-red-500 transition"
+                >
+                  <FiTrash2 size={18} />
+                </button>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* Right Column */}
-        <div className="lg:w-1/3 flex flex-col gap-8">
-          {/* Image Gallery */}
-          <div className="bg-gray-200 rounded-3xl h-64 flex items-center justify-between px-4 relative overflow-hidden shadow-inner group">
-            {imagenes.length > 0 && (
-              <img src={imagenes[imageIndex]} alt="Destino" className="absolute inset-0 w-full h-full object-cover" />
-            )}
-            {imagenes.length > 1 && (
-              <button 
-                onClick={handleImagePrev}
-                className="w-10 h-10 bg-white/50 hover:bg-white flex items-center justify-center rounded-full text-gray-700 transition z-10"
-              >
-                <FiChevronLeft size={24} />
-              </button>
-            )}
-            <div className="absolute inset-0 flex items-center justify-center z-10">
-              <label className="w-16 h-16 bg-white/50 rounded-full flex items-center justify-center text-gray-600 hover:bg-white hover:scale-110 transition cursor-pointer">
-                <FiPlus size={32} />
-                <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
-              </label>
-            </div>
-            {imagenes.length > 1 && (
-              <button 
-                onClick={handleImageNext}
-                className="w-10 h-10 bg-white/50 hover:bg-white flex items-center justify-center rounded-full text-gray-700 transition z-10"
-              >
-                <FiChevronRight size={24} />
-              </button>
+          <div className="mt-10 bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-800 mb-1">
+              Resumen de actividades
+            </h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Vista general de todo el itinerario. Haz clic en un día para editarlo.
+            </p>
+
+            {actividadesConContenido.length === 0 ? (
+              <p className="text-sm text-gray-400 italic">
+                Aún no hay actividades registradas en ningún día.
+              </p>
+            ) : (
+              <div className="space-y-4">
+                {Array.from({ length: numDays }, (_, dayIdx) => {
+                  const actsDelDia = actividades.filter(
+                    (a) =>
+                      a.dayIndex === dayIdx &&
+                      (a.nombre.trim() || a.descripcion.trim())
+                  );
+
+                  return (
+                    <div
+                      key={dayIdx}
+                      className={`rounded-lg border p-4 transition ${
+                        activeDay === dayIdx
+                          ? 'border-blue-400 bg-blue-50/50'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setActiveDay(dayIdx)}
+                        className="flex items-center justify-between w-full text-left mb-2"
+                      >
+                        <span className="font-semibold text-gray-800">
+                          Día {dayIdx + 1}
+                        </span>
+                        <span className="text-xs font-medium text-gray-500">
+                          {actsDelDia.length}{' '}
+                          {actsDelDia.length === 1 ? 'actividad' : 'actividades'}
+                        </span>
+                      </button>
+
+                      {actsDelDia.length === 0 ? (
+                        <p className="text-sm text-gray-400 italic">Sin actividades</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {actsDelDia.map((act) => (
+                            <li
+                              key={act.id}
+                              className="text-sm border-l-2 border-blue-300 pl-3"
+                            >
+                              <p className="font-medium text-gray-800">
+                                {act.nombre.trim() || 'Sin nombre'}
+                              </p>
+                              {act.descripcion.trim() && (
+                                <p className="text-gray-500">{act.descripcion}</p>
+                              )}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-          {/* Image indicators & remove */}
-          {imagenes.length > 0 && (
-            <div className="flex items-center justify-between -mt-4">
-              <div className="flex gap-2">
-                {imagenes.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-2 h-2 rounded-full transition cursor-pointer ${
-                      i === imageIndex ? 'bg-blue-500' : 'bg-gray-300'
-                    }`}
-                    onClick={() => setImageIndex(i)}
-                  />
-                ))}
-              </div>
+        </div>
+
+        <div className="lg:w-1/3 flex flex-col gap-8">
+          <div className="bg-gray-200 rounded-3xl h-64 flex items-center justify-center relative overflow-hidden shadow-inner">
+            {portadaMostrada && (
+              <img
+                src={portadaMostrada}
+                alt="Portada del itinerario"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
+            <label className="w-16 h-16 bg-white/70 rounded-full flex items-center justify-center text-gray-600 hover:bg-white hover:scale-110 transition cursor-pointer z-10">
+              <FiPlus size={32} />
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/jpg"
+                className="hidden"
+                onChange={handleImageUpload}
+              />
+            </label>
+          </div>
+
+          {(portadaMostrada || archivoPortada) && (
+            <div className="flex justify-end -mt-4">
               <button
                 onClick={handleRemoveImage}
                 className="text-xs text-red-500 hover:text-red-700 font-semibold"
               >
-                Quitar imagen
+                Quitar portada seleccionada
               </button>
             </div>
           )}
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Visibilidad</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Los itinerarios públicos pueden aparecer en la pantalla de Inicio para otros
+              viajeros.
+            </p>
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                <input
+                  type="radio"
+                  name="visibilidad"
+                  checked={esPublico}
+                  onChange={() => setEsPublico(true)}
+                  className="mt-1"
+                />
+                <div>
+                  <span className="font-semibold text-gray-800">Público</span>
+                  <p className="text-sm text-gray-500">
+                    Visible en Inicio y recomendaciones de la comunidad.
+                  </p>
+                </div>
+              </label>
+              <label className="flex items-start gap-3 cursor-pointer p-3 rounded-lg border border-gray-200 hover:bg-gray-50 transition">
+                <input
+                  type="radio"
+                  name="visibilidad"
+                  checked={!esPublico}
+                  onChange={() => setEsPublico(false)}
+                  className="mt-1"
+                />
+                <div>
+                  <span className="font-semibold text-gray-800">Privado</span>
+                  <p className="text-sm text-gray-500">
+                    Solo tú puedes ver y editar este itinerario.
+                  </p>
+                </div>
+              </label>
+            </div>
+          </div>
 
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Finanzas</h2>
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-600">Presupuesto</label>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">$</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">
+                  $
+                </span>
                 <input
                   type="number"
                   min="0"
@@ -451,7 +590,7 @@ const CrearItinerario = () => {
             disabled={loading}
             className="w-full bg-blue-500 text-white font-bold text-lg py-4 rounded-xl hover:bg-blue-600 transition shadow-lg hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {loading ? 'Guardando...' : (editId ? 'Actualizar' : 'Guardar')}
+            {loading ? 'Guardando...' : editId ? 'Actualizar' : 'Guardar'}
           </button>
         </div>
       </div>

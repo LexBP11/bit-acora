@@ -1,41 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiPlus } from 'react-icons/fi';
+import { FiSearch } from 'react-icons/fi';
 import ItinerarioCard from '../../components/ItinerarioCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { itinerarioService } from '../../services/itinerarioService';
-import { getImagenDestino } from '../../utils/imagenHelper';
-import { obtenerImagenes, eliminarImagenes } from '../../utils/imageStorage';
-
-interface Itinerario {
-  id: string;
-  destino: string;
-  imagen?: string;
-  notas: string;
-  usuarioId: string;
-  usuario?: { nombre: string };
-  actividades: { nombre: string; icono?: string }[];
-}
+import { getImagenDestino, getPortadaUrl, getAvatarUrl } from '../../utils/imagenHelper';
+import type { Itinerario } from '../../interfaces';
 
 const MisItinerarios = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [itinerarios, setItinerarios] = useState<Itinerario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const fetchItinerarios = async () => {
       try {
         setLoading(true);
+        setError(null);
         if (!user) return;
+
         const data = await itinerarioService.getAll();
         if (data) {
-          const misViajes = data.filter((it: any) => it.usuarioId === user.id);
+          const misViajes = data.filter((it) => it.usuarioId === user.id);
           setItinerarios(misViajes);
         }
-      } catch (error) {
-        console.error('Error al cargar mis itinerarios:', error);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('No se pudieron cargar tus itinerarios');
+        }
+        setItinerarios([]);
       } finally {
         setLoading(false);
       }
@@ -44,23 +42,22 @@ const MisItinerarios = () => {
     fetchItinerarios();
   }, [user]);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
-
   const filteredItinerarios = itinerarios.filter((it) =>
     it.destino.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleDelete = async (id: string) => {
-    if (window.confirm("¿Estás seguro de que deseas borrar este itinerario? Esta acción no se puede deshacer.")) {
+    if (
+      window.confirm(
+        '¿Estás seguro de que deseas borrar este itinerario? Esta acción no se puede deshacer.'
+      )
+    ) {
       try {
         await itinerarioService.delete(id);
-        eliminarImagenes(id);
-        setItinerarios(itinerarios.filter(it => it.id !== id));
+        setItinerarios(itinerarios.filter((it) => it.id !== id));
       } catch (error) {
         console.error(error);
-        alert("Error al borrar el itinerario");
+        alert('Error al borrar el itinerario');
       }
     }
   };
@@ -81,7 +78,7 @@ const MisItinerarios = () => {
           type="text"
           placeholder="Busca un itinerario"
           value={searchTerm}
-          onChange={handleSearch}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
@@ -91,13 +88,19 @@ const MisItinerarios = () => {
           <div className="flex items-center justify-center h-96">
             <p className="text-gray-500">Cargando tus itinerarios...</p>
           </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-96 bg-red-50 rounded-2xl border border-red-100">
+            <p className="text-red-600 text-lg font-medium mb-2">Error al cargar itinerarios</p>
+            <p className="text-red-500 text-sm">{error}</p>
+          </div>
         ) : filteredItinerarios.length > 0 ? (
           <div className="flex flex-col gap-6">
             {filteredItinerarios.map((itinerario) => {
-              const activitiesWithIcons = itinerario.actividades?.map((act) => ({
-                nombre: act.nombre,
-                icono: '🎯',
-              })) || [];
+              const activitiesWithIcons =
+                itinerario.actividades?.map((act) => ({
+                  nombre: act.nombre,
+                  icono: '🎯',
+                })) || [];
 
               return (
                 <ItinerarioCard
@@ -106,12 +109,12 @@ const MisItinerarios = () => {
                     id: itinerario.id,
                     titulo: itinerario.destino,
                     descripcion: itinerario.notas || 'Sin descripción',
-                    imagen: (() => {
-                      const saved = obtenerImagenes(itinerario.id);
-                      return saved && saved.length > 0 ? saved[0] : (itinerario.imagen || '');
-                    })(),
-                    usuarioNombre: itinerario.usuario?.nombre || user?.nombre || 'Yo',
-                    usuarioInicial: (itinerario.usuario?.nombre || user?.nombre || 'Y').charAt(0).toUpperCase(),
+                    imagen:
+                      getPortadaUrl(itinerario.portadaUrl) ||
+                      getImagenDestino(itinerario.destino),
+                    usuarioNombre: user?.nombre || 'Yo',
+                    usuarioInicial: (user?.nombre || 'Y').charAt(0).toUpperCase(),
+                    usuarioAvatarUrl: getAvatarUrl(user?.avatarUrl),
                     actividades: activitiesWithIcons,
                   }}
                   onClick={() => navigate(`/itinerarios/${itinerario.id}/detalle`)}
@@ -126,7 +129,7 @@ const MisItinerarios = () => {
             <p className="text-gray-500 text-lg mb-4">
               {searchTerm
                 ? 'No hay itinerarios que coincidan con tu búsqueda'
-                : 'Aún no has creado ningún itinerario'}
+                : 'Aún no tienes viajes, ¡anímate a crear el primero!'}
             </p>
             {!searchTerm && (
               <button

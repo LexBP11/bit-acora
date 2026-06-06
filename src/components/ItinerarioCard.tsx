@@ -8,6 +8,7 @@ interface ItinerarioCard {
   imagen?: string;
   usuarioNombre: string;
   usuarioInicial: string;
+  usuarioAvatarUrl?: string;
   actividades: { nombre: string; icono: string }[];
 }
 
@@ -37,10 +38,18 @@ const ItinerarioCard: React.FC<ItinerarioCardProps> = ({
         {/* Sección Izquierda - Usuario e Imagen */}
         <div className="w-1/3 bg-gray-200 flex flex-col items-center justify-center p-6 relative">
           {/* Avatar del usuario */}
-          <div className="w-16 h-16 rounded-full bg-teal-500 flex items-center justify-center mb-4">
-            <span className="text-white text-2xl font-bold">
-              {itinerario.usuarioInicial}
-            </span>
+          <div className="w-16 h-16 rounded-full bg-teal-500 flex items-center justify-center mb-4 overflow-hidden">
+            {itinerario.usuarioAvatarUrl ? (
+              <img
+                src={itinerario.usuarioAvatarUrl}
+                alt={itinerario.usuarioNombre}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="text-white text-2xl font-bold">
+                {itinerario.usuarioInicial}
+              </span>
+            )}
           </div>
           <p className="text-gray-700 font-semibold text-center mb-4">
             {itinerario.usuarioNombre}

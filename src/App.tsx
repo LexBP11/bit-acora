@@ -10,7 +10,6 @@ import Registro from './pages/Auth/Registro';
 
 // Páginas (Rutas Protegidas)
 import Home from './pages/Home/Home';
-import TestPreferencias from './pages/Preferencias/TestPreferencias';
 import MisItinerarios from './pages/Itinerarios/MisItinerarios';
 import CrearItinerario from './pages/Itinerarios/CrearItinerario';
 import VerItinerario from './pages/Itinerarios/VerItinerario';
@@ -18,6 +17,7 @@ import DetalleItinerario from './pages/Itinerarios/DetalleItinerario';
 import Finanzas from './pages/Finanzas/Finanzas';
 import VerPerfil from './pages/Perfil/VerPerfil';
 import EditarPerfil from './pages/Perfil/EditarPerfil';
+import DashboardReportes from './pages/Reportes/DashboardReportes';
 
 // Layout para rutas protegidas con Sidebar
 const ProtectedLayout = ({ children }: { children: React.ReactNode }) => (
@@ -40,14 +40,7 @@ const App = () => {
 
           {/* Rutas Protegidas */}
           <Route element={<ProtectedRoute />}>
-            <Route
-              path="/preferencias"
-              element={
-                <ProtectedLayout>
-                  <TestPreferencias />
-                </ProtectedLayout>
-              }
-            />
+
             <Route
               path="/home"
               element={
@@ -109,6 +102,14 @@ const App = () => {
               element={
                 <ProtectedLayout>
                   <EditarPerfil />
+                </ProtectedLayout>
+              }
+            />
+            <Route
+              path="/reportes"
+              element={
+                <ProtectedLayout>
+                  <DashboardReportes />
                 </ProtectedLayout>
               }
             />

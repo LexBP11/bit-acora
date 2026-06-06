@@ -12,6 +12,7 @@ export interface Usuario {
 export interface UpdatePerfilPayload {
   nombreUsuario?: string;
   destinosInteres?: string[];
+  presupuestoPerfil?: number;
   contrasenaActual?: string;
   nuevaContrasena?: string;
 }
@@ -38,6 +39,7 @@ export interface Itinerario {
   estado?: 'ACTIVO' | 'ELIMINADO';
   actividades?: Actividad[];
   gastos?: Gasto[];
+  usuario?: Pick<Usuario, 'nombre' | 'avatarUrl'>;
   creadoEn?: string;
 }
 
@@ -60,11 +62,11 @@ export interface Categoria {
 
 export interface AlertaPresupuesto {
   itinerarioId: string;
-  presupuestoTotal: number;
-  totalGastado: number;
-  porcentajeUsado: number;
-  alerta: string;
-  estado: 'ok' | 'advertencia' | 'critico';
+  presupuestoTotal?: number;
+  totalGastado?: number;
+  porcentajeUsado?: number;
+  alerta?: string;
+  estado?: 'ok' | 'advertencia' | 'critico';
   excesos?: string[];
   gastosHormiga?: string[];
 }
@@ -77,16 +79,20 @@ export interface SocialRankingUser {
 }
 
 export interface ReporteViaje {
-  itinerarioId: string;
-  presupuestoTotal: number;
+  itinerario: string;
+  fechas: { inicio: string; fin: string };
+  presupuesto: number;
   totalGastado: number;
-  balanceFinal: number;
+  balance: number;
   desglosePorCategoria: Record<string, number>;
 }
 
 export interface ReportePeriodo {
-  totalPresupuestos: number;
-  totalGastado: number;
-  balanceGlobal: number;
-  viajesAnalizados: number;
+  periodo: { inicio: string; fin: string };
+  viajesRealizados: number;
+  presupuestoTotal: number;
+  gastoTotal: number;
+  gastosHormigaTotal: number;
+  desglosePorCategoria: Record<string, number>;
+  balanceTotal: number;
 }

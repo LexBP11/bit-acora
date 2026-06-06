@@ -1,3 +1,18 @@
+export const getServerBaseUrl = (): string => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+  return apiUrl.replace(/\/api\/?$/, '');
+};
+
+export const getPortadaUrl = (portadaUrl?: string): string | undefined => {
+  if (!portadaUrl) return undefined;
+  return `${getServerBaseUrl()}${portadaUrl}`;
+};
+
+export const getAvatarUrl = (avatarUrl?: string): string | undefined => {
+  if (!avatarUrl) return undefined;
+  return `${getServerBaseUrl()}${avatarUrl}`;
+};
+
 const genericImages = [
   'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=800&fit=crop', // Map/compass/camera
   'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&fit=crop', // Beach

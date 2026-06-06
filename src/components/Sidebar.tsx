@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { FiHome, FiBox, FiUser, FiLogOut } from 'react-icons/fi';
+import { FiHome, FiBox, FiUser, FiLogOut, FiBarChart2 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import logoImagen from '../assets/logo.jpg';
 
@@ -62,6 +62,20 @@ const Sidebar = () => {
           <FiBox size={24} />
           <span className="text-lg">Itinerarios</span>
         </Link>
+
+        {/* Reportes */}
+        <Link
+          to="/reportes"
+          className={`flex items-center gap-4 px-4 py-3 rounded-lg transition ${
+            isActive('/reportes')
+              ? 'bg-gray-300 text-gray-900 font-semibold'
+              : 'text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          <FiBarChart2 size={24} />
+          <span className="text-lg">Reportes</span>
+        </Link>
+
 
         {/* Perfil */}
         <Link

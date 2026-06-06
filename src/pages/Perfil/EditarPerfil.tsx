@@ -18,6 +18,7 @@ const EditarPerfil = () => {
   // Estados del Formulario
   const [nombre, setNombre] = useState('');
   const [destinos, setDestinos] = useState<string[]>([]);
+  const [presupuesto, setPresupuesto] = useState<number | ''>('');
   
   // Estados para Contraseñas
   const [passwordActual, setPasswordActual] = useState('');
@@ -39,6 +40,7 @@ const EditarPerfil = () => {
     if (user) {
       setNombre(user.nombre || '');
       setDestinos(user.destinosInteres || []);
+      setPresupuesto(user.presupuestoPerfil || '');
     }
   }, [user]);
 
@@ -60,7 +62,8 @@ const EditarPerfil = () => {
     // Estructura bajo la interfaz estricta que creó tu equipo
     const payload: UpdatePerfilPayload = {
       nombreUsuario: nombre,
-      destinosInteres: destinos
+      destinosInteres: destinos,
+      presupuestoPerfil: typeof presupuesto === 'number' ? presupuesto : undefined
     };
 
     // Validaciones si se intenta cambiar la contraseña
@@ -113,7 +116,7 @@ const EditarPerfil = () => {
       
       setTimeout(() => {
         logout();
-        navigate('/auth/login');
+        navigate('/login');
       }, 2500);
     } catch (error) {
       mostrarAlerta('error', 'Error al intentar eliminar la cuenta');
@@ -230,6 +233,21 @@ const EditarPerfil = () => {
                 </label>
               ))}
             </div>
+          </div>
+
+          <hr className="border-gray-300 mb-6" />
+
+          {/* Presupuesto */}
+          <div className="mb-8">
+            <label className="block text-[#305973] font-medium mb-2 ml-1">Presupuesto ideal para tu viaje ($)</label>
+            <input 
+              type="number" 
+              value={presupuesto}
+              onChange={(e) => setPresupuesto(Number(e.target.value) || '')}
+              min="0"
+              className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all"
+              placeholder="Ej. 1500"
+            />
           </div>
 
           <hr className="border-gray-300 mb-6" />

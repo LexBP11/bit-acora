@@ -4,163 +4,55 @@ import { FiSearch } from 'react-icons/fi';
 import ItinerarioCard from '../../components/ItinerarioCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { itinerarioService } from '../../services/itinerarioService';
-import { getImagenDestino } from '../../utils/imagenHelper';
-
-interface Itinerario {
-  id: string;
-  destino: string;
-  imagen?: string;
-  imagenes?: string[];
-  notas: string;
-  usuarioId: string;
-  usuario?: { nombre: string };
-  presupuesto?: number;
-  actividades: { nombre: string; icono?: string }[];
-}
+import { sugerenciaService } from '../../services/sugerenciaService';
+import { getImagenDestino, getPortadaUrl, getAvatarUrl } from '../../utils/imagenHelper';
+import type { Itinerario } from '../../interfaces';
 
 const Home = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [itinerarios, setItinerarios] = useState<Itinerario[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showSugerencias, setShowSugerencias] = useState(false);
 
   useEffect(() => {
     const fetchItinerarios = async () => {
       try {
         setLoading(true);
-        // Primero intenta con destacados, si no funciona usa getAll
-        let data = await itinerarioService.getDestacados();
-        if (!data || data.length === 0) {
-          data = await itinerarioService.getAll();
+        setError(null);
+
+        let data: Itinerario[] = [];
+
+        if (showSugerencias) {
+          data = await sugerenciaService.generar() || [];
+        } else {
+          data = await itinerarioService.getDestacados() || [];
+          if (data.length === 0) {
+            data = await itinerarioService.getAll() || [];
+          }
         }
 
-        // Filtrar para mostrar solo los itinerarios de otros usuarios
-        if (data && user) {
-          data = data.filter((it: any) => it.usuarioId !== user.id);
+        if (data && user && !showSugerencias) {
+          data = data.filter((it) => it.usuarioId !== user.id);
         }
-        
-        // Si aún está vacío, usa datos de prueba realistas con imágenes
-        if (!data || data.length === 0) {
-          console.warn('No hay itinerarios, usando datos de prueba');
-          data = [
-            {
-              id: '1',
-              destino: 'París, Francia',
-              imagen: 'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500&h=300&fit=crop',
-              imagenes: [
-                'https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=500&h=300&fit=crop',
-                'https://images.unsplash.com/photo-1522093007474-d86e9bf7ba6f?w=500&h=300&fit=crop'
-              ],
-              notas: 'Explora la ciudad del amor, visitando la Torre Eiffel, el Louvre y disfrutando de la gastronomía francesa.',
-              usuarioId: 'user1',
-              usuario: { nombre: 'Juan' },
-              actividades: [
-                { nombre: 'Torre Eiffel', icono: '🗼' },
-                { nombre: 'Museos', icono: '🎨' },
-                { nombre: 'Restaurantes', icono: '🍽️' },
-                { nombre: 'Paseos', icono: '🚶' }
-              ],
-              presupuesto: 2500
-            },
-            {
-              id: '2',
-              destino: 'Barcelona, España',
-              imagen: 'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=500&h=300&fit=crop',
-              imagenes: [
-                'https://images.unsplash.com/photo-1583422409516-2895a77efded?w=500&h=300&fit=crop',
-                'https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=500&h=300&fit=crop'
-              ],
-              notas: 'Descubre la arquitectura de Gaudí, playas mediterráneas y la vibrant vida nocturna de la ciudad.',
-              usuarioId: 'user2',
-              usuario: { nombre: 'María' },
-              actividades: [
-                { nombre: 'Sagrada Familia', icono: '⛪' },
-                { nombre: 'Playas', icono: '🏖️' },
-                { nombre: 'Gastronomía', icono: '🍽️' },
-                { nombre: 'Compras', icono: '🛍️' }
-              ],
-              presupuesto: 1800
-            },
-            {
-              id: '3',
-              destino: 'Tokio, Japón',
-              imagen: 'https://images.unsplash.com/photo-1549693578-d683be217e58?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fHRva3lvfGVufDB8fDB8fHww',
-              imagenes: [
-                'https://images.unsplash.com/photo-1549693578-d683be217e58?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fHRva3lvfGVufDB8fDB8fHww',
-                'https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=500&h=300&fit=crop'
-              ],
-              notas: 'Sumergete en la cultura japonesa, desde templos antiguos hasta tecnología de punta en la metrópolis moderna.',
-              usuarioId: 'user3',
-              usuario: { nombre: 'Carlos' },
-              actividades: [
-                { nombre: 'Templos', icono: '🏯' },
-                { nombre: 'Compras', icono: '🛍️' },
-                { nombre: 'Gastronomía', icono: '🍱' },
-                { nombre: 'Naturaleza', icono: '🌸' }
-              ],
-              presupuesto: 3200
-            },
-            {
-              id: '4',
-              destino: 'Nueva York, USA',
-              imagen: 'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=500&h=300&fit=crop',
-              imagenes: [
-                'https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=500&h=300&fit=crop',
-                'https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=500&h=300&fit=crop'
-              ],
-              notas: 'La ciudad que nunca duerme: Times Square, Central Park, Broadway y experiencias urbanas inolvidables.',
-              usuarioId: 'user4',
-              usuario: { nombre: 'Ana' },
-              actividades: [
-                { nombre: 'Times Square', icono: '⏰' },
-                { nombre: 'Teatro', icono: '🎭' },
-                { nombre: 'Compras', icono: '🛍️' },
-                { nombre: 'Restaurantes', icono: '🍽️' }
-              ],
-              presupuesto: 4000
-            },
-            {
-              id: '5',
-              destino: 'Machu Picchu, Perú',
-              imagen: 'https://images.unsplash.com/photo-1587595431973-160d0d94add1?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWFjaHUlMjBwaWNjaHV8ZW58MHx8MHx8fDA%3D',
-              imagenes: [
-                'https://images.unsplash.com/photo-1587595431973-160d0d94add1?fm=jpg&q=60&w=3000&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8bWFjaHUlMjBwaWNjaHV8ZW58MHx8MHx8fDA%3D',
-                'https://images.unsplash.com/photo-1526392060635-9d6019884377?w=500&h=300&fit=crop'
-              ],
-              notas: 'Maravilla del mundo antiguo: senderismo en las montañas de los Andes y descubrimiento de la civilización inca.',
-              usuarioId: 'user5',
-              usuario: { nombre: 'Pedro' },
-              actividades: [
-                { nombre: 'Senderismo', icono: '🥾' },
-                { nombre: 'Arqueología', icono: '🏛️' },
-                { nombre: 'Naturaleza', icono: '🏔️' },
-                { nombre: 'Fotografía', icono: '📸' }
-              ],
-              presupuesto: 1200
-            }
-          ];
-        }
-        
-        // Volver a filtrar si se usaron datos de prueba y coincidiera algún ID
-        if (data && user) {
-          data = data.filter((it: any) => it.usuarioId !== user.id);
-        }
-        
+
         setItinerarios(data || []);
-      } catch (error) {
-        console.error('Error al cargar itinerarios:', error);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('No se pudieron cargar los itinerarios');
+        }
+        setItinerarios([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchItinerarios();
-  }, []);
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-  };
+  }, [user, showSugerencias]);
 
   const filteredItinerarios = itinerarios.filter((it) =>
     it.destino.toLowerCase().includes(searchTerm.toLowerCase())
@@ -168,33 +60,53 @@ const Home = () => {
 
   return (
     <div className="p-12">
-      {/* Título */}
       <h1 className="text-4xl font-bold text-gray-900 mb-2">Inicio</h1>
       <p className="text-lg text-gray-600 mb-8">
         ¡Hola, {user?.nombre || 'Usuario'} Viajero!
       </p>
 
-      {/* Barra de búsqueda */}
       <div className="mb-12 relative max-w-2xl">
         <FiSearch className="absolute left-4 top-4 text-gray-400" size={20} />
         <input
           type="text"
           placeholder="Busca un itinerario"
           value={searchTerm}
-          onChange={handleSearch}
+          onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>
 
-      {/* Sección Itinerarios destacados */}
       <div>
-        <h2 className="text-xl font-bold text-gray-800 mb-6">
-          Itinerarios destacados
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-bold text-gray-800">
+            {showSugerencias ? 'Itinerarios sugeridos para ti' : 'Itinerarios destacados'}
+          </h2>
+
+          <label className="flex items-center cursor-pointer">
+            <div className="relative">
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={showSugerencias}
+                onChange={() => setShowSugerencias(!showSugerencias)}
+              />
+              <div className={`block w-14 h-8 rounded-full transition-colors ${showSugerencias ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
+              <div className={`dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform ${showSugerencias ? 'transform translate-x-6' : ''}`}></div>
+            </div>
+            <div className="ml-3 text-gray-700 font-medium">
+              Sugerencias personalizadas
+            </div>
+          </label>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center h-96">
             <p className="text-gray-500">Cargando itinerarios...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center h-96 bg-red-50 rounded-lg border border-red-100">
+            <p className="text-red-600 text-lg font-medium mb-2">Error al cargar itinerarios</p>
+            <p className="text-red-500 text-sm">{error}</p>
           </div>
         ) : filteredItinerarios.length > 0 ? (
           <div className="flex flex-col gap-6">
@@ -211,11 +123,12 @@ const Home = () => {
                     id: itinerario.id,
                     titulo: itinerario.destino,
                     descripcion: itinerario.notas || 'Sin descripción',
-                    imagen: itinerario.imagen || getImagenDestino(itinerario.destino),
+                    imagen: getPortadaUrl(itinerario.portadaUrl) || getImagenDestino(itinerario.destino),
                     usuarioNombre: itinerario.usuario?.nombre || 'Usuario',
                     usuarioInicial: itinerario.usuario?.nombre
                       ? itinerario.usuario.nombre.charAt(0).toUpperCase()
                       : 'U',
+                    usuarioAvatarUrl: getAvatarUrl(itinerario.usuario?.avatarUrl),
                     actividades: activitiesWithIcons,
                   }}
                   onClick={() => navigate(`/itinerarios/${itinerario.id}/detalle`)}
@@ -224,12 +137,20 @@ const Home = () => {
             })}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-96 bg-white rounded-lg">
-            <p className="text-gray-500 text-lg">
+          <div className="flex flex-col items-center justify-center h-96 bg-white rounded-lg border border-gray-100">
+            <p className="text-gray-500 text-lg mb-4 text-center">
               {searchTerm
                 ? 'No hay itinerarios que coincidan con tu búsqueda'
-                : 'No hay itinerarios destacados aún'}
+                : 'Aún no hay viajes para explorar. ¡Anímate a crear el primero!'}
             </p>
+            {!searchTerm && (
+              <button
+                onClick={() => navigate('/itinerarios/crear')}
+                className="bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-600 transition"
+              >
+                Crear itinerario
+              </button>
+            )}
           </div>
         )}
       </div>
