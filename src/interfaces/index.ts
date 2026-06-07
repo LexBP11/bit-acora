@@ -24,6 +24,9 @@ export interface Actividad {
   descripcion?: string;
   fecha: string; // YYYY-MM-DD HH:MM u otro formato
   costoEstimado?: number;
+  direccion?: string;
+  latitud?: number;
+  longitud?: number;
 }
 
 export interface Itinerario {
