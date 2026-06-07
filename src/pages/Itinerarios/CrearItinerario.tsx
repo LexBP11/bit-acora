@@ -11,6 +11,9 @@ interface ActivityDraft {
   dayIndex: number;
   nombre: string;
   descripcion: string;
+  direccion?: string;
+  latitud?: number;
+  longitud?: number;
   isFromServer?: boolean;
 }
 
@@ -26,10 +29,11 @@ const CrearItinerario = () => {
   const [numDays, setNumDays] = useState(3);
   const [activeDay, setActiveDay] = useState(0);
   const [actividades, setActividades] = useState<ActivityDraft[]>([
-    { id: '1', dayIndex: 0, nombre: '', descripcion: '' },
+    { id: '1', dayIndex: 0, nombre: '', descripcion: '', direccion: '' },
   ]);
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
+  const [searchingCoordsId, setSearchingCoordsId] = useState<string | null>(null);
   const [fechaInicio, setFechaInicio] = useState<string>(() => {
     const today = new Date();
     return today.toISOString().split('T')[0];
@@ -67,7 +71,7 @@ const CrearItinerario = () => {
           if (data.fechaInicio && data.fechaFin) {
             const diff = Math.ceil(
               (new Date(data.fechaFin).getTime() - new Date(data.fechaInicio).getTime()) /
-                (1000 * 60 * 60 * 24)
+              (1000 * 60 * 60 * 24)
             );
             setNumDays(diff > 0 ? diff + 1 : 3);
           }
@@ -88,6 +92,9 @@ const CrearItinerario = () => {
                 dayIndex,
                 nombre: act.nombre,
                 descripcion: act.descripcion || '',
+                direccion: act.direccion || '',
+                latitud: act.latitud,
+                longitud: act.longitud,
                 isFromServer: true,
               };
             });
@@ -172,12 +179,40 @@ const CrearItinerario = () => {
   const handleAddActivity = () => {
     setActividades([
       ...actividades,
-      { id: Date.now().toString(), dayIndex: activeDay, nombre: '', descripcion: '' },
+      { id: Date.now().toString(), dayIndex: activeDay, nombre: '', descripcion: '', direccion: '' },
     ]);
   };
 
-  const updateActivity = (id: string, field: keyof ActivityDraft, value: string) => {
+  const updateActivity = (id: string, field: keyof ActivityDraft, value: string | number) => {
     setActividades(actividades.map((a) => (a.id === id ? { ...a, [field]: value } : a)));
+  };
+
+  const handleBuscarCoordenadas = async (actId: string, direccion: string) => {
+    if (!direccion.trim()) return;
+    setSearchingCoordsId(actId);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(direccion)}`,
+        {
+          headers: {
+            'User-Agent': 'BitAcoraApp/1.0', // Idealmente pon un correo de contacto aquí
+            'Accept-Language': 'es'
+          }
+        }
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const { lat, lon } = data[0];
+        setActividades(prev => prev.map(a => a.id === actId ? { ...a, latitud: parseFloat(lat), longitud: parseFloat(lon) } : a));
+      } else {
+        alert('No se encontraron coordenadas para esta dirección.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error al buscar coordenadas.');
+    } finally {
+      setSearchingCoordsId(null);
+    }
   };
 
   const deleteActivity = (id: string) => {
@@ -226,6 +261,9 @@ const CrearItinerario = () => {
             await actividadService.update(act.id, {
               nombre: act.nombre,
               descripcion: act.descripcion,
+              direccion: act.direccion,
+              latitud: act.latitud,
+              longitud: act.longitud,
             });
           } else {
             const actDate = new Date(baseDate);
@@ -234,6 +272,9 @@ const CrearItinerario = () => {
               itinerarioId: editId,
               nombre: act.nombre,
               descripcion: act.descripcion,
+              direccion: act.direccion,
+              latitud: act.latitud,
+              longitud: act.longitud,
               fecha: actDate.toISOString(),
             });
           }
@@ -255,16 +296,19 @@ const CrearItinerario = () => {
           esPublico,
         });
 
-          if (newItinerario?.id) {
-            for (const act of actividades) {
-              if (!act.nombre) continue;
-              const actDate = new Date(baseDate);
-              actDate.setDate(baseDate.getDate() + act.dayIndex);
+        if (newItinerario?.id) {
+          for (const act of actividades) {
+            if (!act.nombre) continue;
+            const actDate = new Date(baseDate);
+            actDate.setDate(baseDate.getDate() + act.dayIndex);
 
             await actividadService.create({
               itinerarioId: newItinerario.id,
               nombre: act.nombre,
               descripcion: act.descripcion,
+              direccion: act.direccion,
+              latitud: act.latitud,
+              longitud: act.longitud,
               fecha: actDate.toISOString(),
             });
           }
@@ -371,11 +415,10 @@ const CrearItinerario = () => {
               <button
                 key={idx}
                 onClick={() => setActiveDay(idx)}
-                className={`whitespace-nowrap px-6 py-2 rounded-full font-semibold transition ${
-                  activeDay === idx
-                    ? 'bg-blue-500 text-white shadow-md'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
+                className={`whitespace-nowrap px-6 py-2 rounded-full font-semibold transition ${activeDay === idx
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
               >
                 Día {idx + 1}
               </button>
@@ -408,6 +451,33 @@ const CrearItinerario = () => {
                     onChange={(e) => updateActivity(act.id, 'descripcion', e.target.value)}
                     className="w-full text-gray-600 placeholder-gray-400 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-blue-500 focus:outline-none"
                   />
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 mt-2">
+                    <input
+                      type="text"
+                      placeholder="Dirección (Opcional)"
+                      value={act.direccion || ''}
+                      onChange={(e) => updateActivity(act.id, 'direccion', e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleBuscarCoordenadas(act.id, act.direccion || '');
+                        }
+                      }}
+                      className="flex-1 text-sm text-gray-600 placeholder-gray-400 bg-transparent border-b border-gray-200 hover:border-gray-300 focus:border-blue-500 focus:outline-none py-1"
+                    />
+                    <button
+                      onClick={() => handleBuscarCoordenadas(act.id, act.direccion || '')}
+                      disabled={!act.direccion?.trim() || searchingCoordsId === act.id}
+                      className="whitespace-nowrap px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 font-medium text-xs rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed border border-indigo-100"
+                    >
+                      {searchingCoordsId === act.id ? 'Buscando...' : 'Buscar coords'}
+                    </button>
+                  </div>
+                  {act.latitud && act.longitud && (
+                    <p className="text-xs text-emerald-600 font-medium bg-emerald-50 inline-block px-2 py-1 rounded">
+                      ✓ Ubicación: {act.latitud.toFixed(4)}, {act.longitud.toFixed(4)}
+                    </p>
+                  )}
                 </div>
                 <button
                   onClick={() => deleteActivity(act.id)}
@@ -443,11 +513,10 @@ const CrearItinerario = () => {
                   return (
                     <div
                       key={dayIdx}
-                      className={`rounded-lg border p-4 transition ${
-                        activeDay === dayIdx
-                          ? 'border-blue-400 bg-blue-50/50'
-                          : 'border-gray-200 bg-white'
-                      }`}
+                      className={`rounded-lg border p-4 transition ${activeDay === dayIdx
+                        ? 'border-blue-400 bg-blue-50/50'
+                        : 'border-gray-200 bg-white'
+                        }`}
                     >
                       <button
                         type="button"
