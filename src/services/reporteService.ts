@@ -9,6 +9,7 @@ export const reporteService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -21,6 +22,7 @@ export const reporteService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   }
 };

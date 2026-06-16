@@ -209,6 +209,19 @@ const DetalleItinerario = () => {
               </div>
             )}
           </div>
+
+          {itinerario?.imagenesUrl && itinerario.imagenesUrl.length > 0 && (
+            <div className="mt-6 w-full">
+              <h3 className="text-lg font-bold text-gray-800 mb-3">Galería</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {itinerario.imagenesUrl.map((url, idx) => (
+                  <div key={idx} className="h-32 bg-gray-200 rounded-xl overflow-hidden shadow-sm">
+                    <img src={getPortadaUrl(url)} alt={`Galería ${idx}`} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

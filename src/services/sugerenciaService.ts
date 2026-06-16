@@ -9,6 +9,7 @@ export const sugerenciaService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   }
 };

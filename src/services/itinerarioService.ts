@@ -9,6 +9,7 @@ export const itinerarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -18,6 +19,7 @@ export const itinerarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -27,6 +29,7 @@ export const itinerarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -36,6 +39,7 @@ export const itinerarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -45,19 +49,26 @@ export const itinerarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
-  uploadPortada: async (id: string, file: File): Promise<Itinerario> => {
+  uploadPortada: async (id: string, portada?: File | null, imagenes?: File[]): Promise<Itinerario> => {
     try {
       const formData = new FormData();
-      formData.append('portada', file);
+      if (portada) {
+        formData.append('portada', portada);
+      }
+      if (imagenes && imagenes.length > 0) {
+        imagenes.forEach(img => formData.append('imagenes', img));
+      }
       const response = await api.post(`/itinerarios/${id}/portada`, formData, {
         headers: { 'Content-Type': undefined },
       });
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -67,6 +78,7 @@ export const itinerarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -76,6 +88,7 @@ export const itinerarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   }
 };

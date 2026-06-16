@@ -9,6 +9,7 @@ export const socialService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   }
 };

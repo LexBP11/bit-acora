@@ -5,11 +5,17 @@ export const getServerBaseUrl = (): string => {
 
 export const getPortadaUrl = (portadaUrl?: string): string | undefined => {
   if (!portadaUrl) return undefined;
+  if (portadaUrl.startsWith('http://') || portadaUrl.startsWith('https://')) {
+    return portadaUrl;
+  }
   return `${getServerBaseUrl()}${portadaUrl}`;
 };
 
 export const getAvatarUrl = (avatarUrl?: string): string | undefined => {
   if (!avatarUrl) return undefined;
+  if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+    return avatarUrl;
+  }
   return `${getServerBaseUrl()}${avatarUrl}`;
 };
 

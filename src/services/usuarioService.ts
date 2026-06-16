@@ -9,6 +9,7 @@ export const usuarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -19,6 +20,7 @@ export const usuarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -28,6 +30,7 @@ export const usuarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -37,6 +40,7 @@ export const usuarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -46,6 +50,7 @@ export const usuarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 
@@ -59,6 +64,7 @@ export const usuarioService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   },
 

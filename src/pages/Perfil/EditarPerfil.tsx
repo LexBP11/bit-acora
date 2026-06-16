@@ -7,6 +7,7 @@ import AlertaToast from '../../components/AlertaToast';
 // Importaciones de la arquitectura de tu equipo
 import { usuarioService } from '../../services/usuarioService';
 import type { UpdatePerfilPayload } from '../../interfaces';
+import { getAvatarUrl } from '../../utils/imagenHelper';
 
 const EditarPerfil = () => {
   const { user, login, logout } = useAuth();
@@ -155,11 +156,7 @@ const EditarPerfil = () => {
 
   const inicialNombre = user?.nombre ? user.nombre.charAt(0).toUpperCase() : '?';
 
-  // Configuración de la URL de imágenes según el README del proyecto
-  const serverBase = import.meta.env.VITE_API_URL 
-    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '') 
-    : 'http://localhost:3000';
-  const avatarSrc = user?.avatarUrl ? `${serverBase}${user.avatarUrl}` : null;
+  const avatarSrc = getAvatarUrl(user?.avatarUrl);
 
   return (
     <div className="p-8 max-w-4xl mx-auto font-sans relative">

@@ -4,6 +4,7 @@ import { FiEdit3, FiMail, FiMapPin } from 'react-icons/fi';
 import { useAuth } from '../../contexts/AuthContext';
 import { usuarioService } from '../../services/usuarioService';
 import type { Usuario } from '../../interfaces';
+import { getAvatarUrl } from '../../utils/imagenHelper';
 
 const VerPerfil = () => {
   const { isLoading: authLoading, login } = useAuth();
@@ -61,10 +62,7 @@ const VerPerfil = () => {
   const displayUser = profile;
   const inicialNombre = displayUser.nombre ? displayUser.nombre.charAt(0).toUpperCase() : '?';
 
-  const serverBase = import.meta.env.VITE_API_URL
-    ? import.meta.env.VITE_API_URL.replace(/\/api\/?$/, '')
-    : 'http://localhost:3000';
-  const avatarSrc = displayUser.avatarUrl ? `${serverBase}${displayUser.avatarUrl}` : null;
+  const avatarSrc = getAvatarUrl(displayUser.avatarUrl);
 
   return (
     <div className="p-8 max-w-5xl mx-auto font-sans">

@@ -9,6 +9,7 @@ export const categoriaService = {
       return response.data;
     } catch (error) {
       handleApiError(error);
+      throw error;
     }
   }
 };

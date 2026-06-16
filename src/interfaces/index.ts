@@ -39,6 +39,7 @@ export interface Itinerario {
   notas?: string;
   esPublico: boolean;
   portadaUrl?: string;
+  imagenesUrl?: string[];
   estado?: 'ACTIVO' | 'ELIMINADO';
   actividades?: Actividad[];
   gastos?: Gasto[];

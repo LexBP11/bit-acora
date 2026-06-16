@@ -84,13 +84,13 @@ const ReporteViajeModal: React.FC<ReporteViajeModalProps> = ({ itinerarioId, onC
                       fill="#8884d8"
                       paddingAngle={5}
                       dataKey="value"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      label={({ name, percent }) => percent ? `${name} ${(percent * 100).toFixed(0)}%` : name}
                     >
                       {data.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value: number) => `$${value}`} />
+                    <Tooltip formatter={(value: any) => `$${value}`} />
                     <Legend />
                   </PieChart>
                 </ResponsiveContainer>

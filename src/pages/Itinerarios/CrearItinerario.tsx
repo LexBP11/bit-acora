@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { FiArrowLeft, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { MapContainer, TileLayer, Marker, Popup, Polyline } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import { itinerarioService } from '../../services/itinerarioService';
 import { actividadService } from '../../services/actividadService';
 import { useAuth } from '../../contexts/AuthContext';
@@ -41,6 +43,9 @@ const CrearItinerario = () => {
   const [portadaUrlServidor, setPortadaUrlServidor] = useState<string | undefined>();
   const [archivoPortada, setArchivoPortada] = useState<File | null>(null);
   const [portadaPreview, setPortadaPreview] = useState<string | null>(null);
+  const [imagenesUrlsServidor, setImagenesUrlsServidor] = useState<string[]>([]);
+  const [archivosImagenes, setArchivosImagenes] = useState<File[]>([]);
+  const [imagenesPreviews, setImagenesPreviews] = useState<string[]>([]);
   const [esPublico, setEsPublico] = useState(false);
 
   useEffect(() => {
@@ -48,8 +53,9 @@ const CrearItinerario = () => {
       if (portadaPreview) {
         URL.revokeObjectURL(portadaPreview);
       }
+      imagenesPreviews.forEach(p => URL.revokeObjectURL(p));
     };
-  }, [portadaPreview]);
+  }, [portadaPreview, imagenesPreviews]);
 
   useEffect(() => {
     if (!editId) return;
@@ -66,6 +72,7 @@ const CrearItinerario = () => {
             setFechaInicio(data.fechaInicio.split('T')[0]);
           }
           setPortadaUrlServidor(data.portadaUrl);
+          setImagenesUrlsServidor(data.imagenesUrl || []);
           setEsPublico(data.esPublico ?? false);
 
           if (data.fechaInicio && data.fechaFin) {
@@ -137,6 +144,38 @@ const CrearItinerario = () => {
     }
     setArchivoPortada(null);
     setPortadaPreview(null);
+  };
+
+  const handleImagesUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    if (files.length + archivosImagenes.length + imagenesUrlsServidor.length > 5) {
+      alert('Solo puedes tener hasta 5 imágenes adicionales en total.');
+      return;
+    }
+
+    const validFiles = files.filter(f => f.size <= 5 * 1024 * 1024);
+    if (validFiles.length < files.length) {
+      alert('Algunas imágenes son muy pesadas. El máximo es 5 MB por imagen.');
+    }
+
+    if (validFiles.length > 0) {
+      setArchivosImagenes(prev => [...prev, ...validFiles]);
+      setImagenesPreviews(prev => [...prev, ...validFiles.map(f => URL.createObjectURL(f))]);
+    }
+    
+    e.target.value = '';
+  };
+
+  const handleRemoveGalleryImage = (index: number) => {
+    setArchivosImagenes(prev => prev.filter((_, i) => i !== index));
+    setImagenesPreviews(prev => {
+      const newPreviews = [...prev];
+      URL.revokeObjectURL(newPreviews[index]);
+      newPreviews.splice(index, 1);
+      return newPreviews;
+    });
   };
 
   const handleAddDay = () => {
@@ -223,10 +262,13 @@ const CrearItinerario = () => {
     setActividades(actividades.filter((a) => a.id !== id));
   };
 
-  const subirPortadaSiCorresponde = async (itinerarioId: string) => {
-    if (!archivoPortada) return;
-    const actualizado = await itinerarioService.uploadPortada(itinerarioId, archivoPortada);
-    setPortadaUrlServidor(actualizado.portadaUrl);
+  const subirImagenesSiCorresponde = async (itinerarioId: string) => {
+    if (!archivoPortada && archivosImagenes.length === 0) return;
+    const actualizado = await itinerarioService.uploadPortada(itinerarioId, archivoPortada, archivosImagenes);
+    if (actualizado) {
+      setPortadaUrlServidor(actualizado.portadaUrl);
+      setImagenesUrlsServidor(actualizado.imagenesUrl || []);
+    }
   };
 
   const handleGuardar = async () => {
@@ -280,7 +322,7 @@ const CrearItinerario = () => {
           }
         }
 
-        await subirPortadaSiCorresponde(editId);
+        await subirImagenesSiCorresponde(editId);
         navigate('/itinerarios');
       } else {
         const endCreate = new Date(baseDate);
@@ -313,7 +355,7 @@ const CrearItinerario = () => {
             });
           }
 
-          await subirPortadaSiCorresponde(newItinerario.id);
+          await subirImagenesSiCorresponde(newItinerario.id);
           navigate('/itinerarios');
         }
       }
@@ -489,6 +531,54 @@ const CrearItinerario = () => {
             ))}
           </div>
 
+          <div className="mt-8 h-[400px] rounded-xl overflow-hidden shadow-sm border border-gray-200 z-0 relative">
+            {(() => {
+              const actividadesConCoords = dayActivities.filter(
+                (a) => a.latitud !== undefined && a.latitud !== null && a.longitud !== undefined && a.longitud !== null
+              );
+
+              const mapCenter: [number, number] = actividadesConCoords.length > 0
+                ? [actividadesConCoords[0].latitud!, actividadesConCoords[0].longitud!]
+                : [19.4326, -99.1332]; // Default CDMX
+
+              const routePositions: [number, number][] = actividadesConCoords.map(
+                (a) => [a.latitud!, a.longitud!]
+              );
+
+              return (
+                <MapContainer
+                  key={`map-${activeDay}-${actividadesConCoords.length}`} // Re-render when changing day or adding coords
+                  center={mapCenter}
+                  zoom={13}
+                  style={{ height: '100%', width: '100%' }}
+                  className="z-0"
+                >
+                  <TileLayer
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                  />
+                  {actividadesConCoords.map((act) => (
+                    <Marker key={act.id} position={[act.latitud!, act.longitud!]}>
+                      <Popup>
+                        <strong className="text-blue-600 block mb-1">{act.nombre || 'Actividad'}</strong>
+                        {act.direccion && <span className="text-gray-600 text-sm">{act.direccion}</span>}
+                      </Popup>
+                    </Marker>
+                  ))}
+                  {routePositions.length > 1 && (
+                    <Polyline
+                      positions={routePositions}
+                      color="blue"
+                      weight={4}
+                      opacity={0.7}
+                      dashArray="10, 10"
+                    />
+                  )}
+                </MapContainer>
+              );
+            })()}
+          </div>
+
           <div className="mt-10 bg-gray-50 rounded-xl p-6 border border-gray-200">
             <h3 className="text-lg font-bold text-gray-800 mb-1">
               Resumen de actividades
@@ -589,6 +679,47 @@ const CrearItinerario = () => {
               </button>
             </div>
           )}
+
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800 mb-2">Galería (Opcional)</h2>
+            <p className="text-sm text-gray-500 mb-4">
+              Añade hasta 5 imágenes adicionales.
+            </p>
+            
+            <div className="flex flex-wrap gap-3">
+              {imagenesUrlsServidor.map((url, idx) => (
+                <div key={`server-${idx}`} className="relative w-16 h-16 bg-gray-200 rounded-lg overflow-hidden group">
+                  <img src={getPortadaUrl(url)} alt={`Galería ${idx}`} className="w-full h-full object-cover" />
+                  {/* Nota: En el backend actual no hay endpoint para borrar imágenes individuales de la galería ya subidas, pero visualmente las mostramos */}
+                </div>
+              ))}
+              
+              {imagenesPreviews.map((preview, idx) => (
+                <div key={`local-${idx}`} className="relative w-16 h-16 bg-gray-200 rounded-lg overflow-hidden group">
+                  <img src={preview} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => handleRemoveGalleryImage(idx)}
+                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                  >
+                    <FiTrash2 size={12} />
+                  </button>
+                </div>
+              ))}
+
+              {archivosImagenes.length + imagenesUrlsServidor.length < 5 && (
+                <label className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400 hover:border-blue-500 hover:text-blue-500 transition cursor-pointer">
+                  <FiPlus size={20} />
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/png,image/jpeg,image/jpg"
+                    className="hidden"
+                    onChange={handleImagesUpload}
+                  />
+                </label>
+              )}
+            </div>
+          </div>
 
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <h2 className="text-xl font-bold text-gray-800 mb-4">Visibilidad</h2>
