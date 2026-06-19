@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { FiHome, FiBox, FiUser, FiLogOut, FiBarChart2 } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
-import logoImagen from '../assets/logo.jpg';
+import logoImagen from '../assets/logoF.jpeg';
 
 const Sidebar = () => {
   const location = useLocation();
@@ -18,11 +18,11 @@ const Sidebar = () => {
     <div className="w-64 bg-gray-100 min-h-screen flex flex-col p-6 shadow-lg">
       {/* Logo */}
       <div className="mb-8 flex justify-center">
-        <div className="w-32 h-20 bg-gray-200 rounded-lg flex items-center justify-center">
+        <div className="w-48 flex items-center justify-center">
           <img 
             src={logoImagen} 
             alt="Logo" 
-            className="w-full h-full object-contain"
+            className="w-full h-auto object-contain"
           />
         </div>
       </div>
